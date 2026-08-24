@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DayPulse — Daily Schedule Checklist</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body class="min-h-screen pb-16">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 sm:px-8 py-3 flex items-center justify-between no-print">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+                <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">
+                    DayPulse
+                </h1>
+                <p class="text-[11px] text-slate-400 -mt-0.5 hidden sm:block">Write once, check off daily</p>
+            </div>
+        </div>
+
+        <!-- Center / Right Status: Total Done on Current Selected Date -->
+        <div class="flex items-center gap-2 sm:gap-4">
+            
+            <!-- Live Selected Day Progress in Navbar -->
+            <div id="navDailyProgressBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-inner">
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                <span id="navDoneCounterText" class="text-xs font-bold text-slate-200">0 / 0 Done</span>
+                <span id="navDonePercentText" class="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">0%</span>
+            </div>
+
+            <button id="manageRoutinesBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-300 hover:text-white bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 transition shadow-sm">
+                <i data-lucide="repeat" class="w-4 h-4 text-indigo-400"></i>
+                <span class="hidden md:inline">Master Routine</span>
+            </button>
+
+            <button id="openAddTaskBtn" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/25 transition">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add Task</span>
+            </button>
+
+            <div class="h-5 w-px bg-slate-700 mx-0.5 hidden sm:block"></div>
+
+            <button id="printChecklistBtn" class="p-2 text-slate-400 hover:text-slate-200 rounded-xl hover:bg-slate-800/60 transition" title="Print Checklist">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+            </button>
+
+            <button id="openSettingsBtn" class="p-2 text-slate-400 hover:text-slate-200 rounded-xl hover:bg-slate-800/60 transition" title="Settings">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        
+        <!-- Date Navigator Bar with Clean Original Layout & Stylized Date Picker -->
+        <div class="glass-panel rounded-2xl p-4 sm:p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-slate-800/80">
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <button id="prevDateBtn" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center border border-slate-700/60" title="Previous Day">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+
+                <div class="text-center md:text-left">
+                    <div class="flex items-center gap-2 justify-center md:justify-start">
+                        <span id="greetingText" class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Today's Schedule</span>
+                        <span id="todayBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            LIVE TODAY
+                        </span>
+                        <span id="yesterdayBadge" class="hidden inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                            YESTERDAY (CATCH-UP ENABLED)
+                        </span>
+                    </div>
+                    <h2 id="currentDateTitle" class="text-xl sm:text-2xl font-bold text-slate-100 mt-0.5">
+                        <!-- Rendered by JS -->
+                    </h2>
+                </div>
+
+                <button id="nextDateBtn" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center border border-slate-700/60" title="Next Day">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Jump to Today & Styled Calendar Date Input -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-center">
+                <button id="todayBtn" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold transition border border-slate-700">
+                    Jump to Today
+                </button>
+
+                <div class="relative flex items-center">
+                    <input type="date" id="datePickerInput" class="custom-date-picker" title="Click to choose a date">
+                </div>
+            </div>
+        </div>
+
+        <!-- Read-Only Banner for 2+ Days Ago or Future Days, or Info Banner for Yesterday -->
+        <div id="readOnlyBanner" class="hidden glass-panel rounded-2xl p-4 mb-6 border border-slate-700/80 bg-slate-900/90 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span id="readOnlyBannerIcon" class="text-2xl">📜</span>
+                <div>
+                    <h4 id="readOnlyBannerTitle" class="text-sm font-bold text-slate-200">Past History View (Read-Only)</h4>
+                    <p id="readOnlyBannerDesc" class="text-xs text-slate-400">You are viewing historical records. Checklists can only be checked off on today or yesterday.</p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('todayBtn').click()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition flex-shrink-0">
+                Go to Today
+            </button>
+        </div>
+
+        <!-- 100% Celebration Banner -->
+        <div id="celebrationBanner" class="hidden celebration-glow glass-panel bg-emerald-950/40 border border-emerald-500/40 rounded-2xl p-5 mb-6 text-center text-emerald-200">
+            <div class="flex items-center justify-center gap-3">
+                <span class="text-3xl">🎉</span>
+                <div>
+                    <h3 class="text-lg font-extrabold text-emerald-300">All Tasks Completed!</h3>
+                    <p class="text-xs text-emerald-400/90 mt-0.5">Outstanding discipline. You've conquered every item on your daily schedule.</p>
+                </div>
+                <span class="text-3xl">🌟</span>
+            </div>
+        </div>
+
+        <!-- Dashboard Layout: 2 Columns on Desktop -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Column: Unified Daily Checklist (8 Cols) -->
+            <div class="lg:col-span-8 space-y-4">
+                <div class="flex items-center justify-between px-1">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-200">Daily Checklist</h3>
+                        <p class="text-xs text-slate-400">Recurring schedule automatically active for this date</p>
+                    </div>
+                    <button id="addToListTopBtn" onclick="window.app.openAddTaskModal()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Add Task</span>
+                    </button>
+                </div>
+
+                <!-- Unified Checklist Container -->
+                <div id="checklistContainer" class="space-y-3">
+                    <!-- Dynamic unified checklist injected by JS -->
+                </div>
+            </div>
+
+            <!-- Right Column: Stats, Streaks & Notes (4 Cols) -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Today's Progress Card -->
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400">Progress on Selected Date</h4>
+                        <span id="taskCounterText" class="text-xs font-semibold text-slate-300">0 of 0 tasks done</span>
+                    </div>
+
+                    <div class="flex items-center gap-5 my-2">
+                        <div class="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                            <svg class="w-20 h-20" viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" stroke-width="7" class="text-slate-800" />
+                                <circle id="progressRingCircle" cx="40" cy="40" r="36" fill="transparent" stroke="currentColor" stroke-width="7" class="text-indigo-500 progress-ring-circle" stroke-dasharray="226.19 226.19" stroke-dashoffset="226.19" stroke-linecap="round" />
+                            </svg>
+                            <span id="progressPercentageText" class="absolute text-base font-extrabold text-slate-100">0%</span>
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden mb-2">
+                                <div id="mainProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <p class="text-[11px] text-slate-400 italic">"Consistency beats intensity every single time."</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Habit Streaks & Overview -->
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3.5">Habit Consistency</h4>
+                    
+                    <div class="grid grid-cols-3 gap-3 text-center mb-4">
+                        <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3">
+                            <div class="flex items-center justify-center text-amber-400 mb-1">
+                                <i data-lucide="flame" class="w-4 h-4"></i>
+                            </div>
+                            <span id="currentStreakValue" class="text-xl font-extrabold text-slate-100">0</span>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">Day Streak</p>
+                        </div>
+
+                        <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3">
+                            <div class="flex items-center justify-center text-purple-400 mb-1">
+                                <i data-lucide="trophy" class="w-4 h-4"></i>
+                            </div>
+                            <span id="bestStreakValue" class="text-xl font-extrabold text-slate-100">0</span>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">Best Streak</p>
+                        </div>
+
+                        <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3">
+                            <div class="flex items-center justify-center text-emerald-400 mb-1">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            </div>
+                            <span id="selectedDayCompletedValue" class="text-xl font-extrabold text-emerald-400">0</span>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">Day Done</p>
+                        </div>
+                    </div>
+
+                    <!-- 7-Day Consistency Strip -->
+                    <div class="mt-4 pt-4 border-t border-slate-800">
+                        <span class="text-xs font-semibold text-slate-400 block mb-2">Past 7 Days History</span>
+                        <div id="weekConsistencyStrip" class="grid grid-cols-7 gap-1.5">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Notes / Reflection -->
+                <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400">Day Notes & Reflection</h4>
+                        <i data-lucide="feather" class="w-4 h-4 text-slate-500"></i>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-2.5">Auto-saved for this specific date</p>
+                    <textarea id="dailyNotesTextarea" rows="3" placeholder="Wins of the day, ideas, or quick thoughts..." class="w-full bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none"></textarea>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal 1: Add / Edit Single Task Modal (with explicit AM/PM Selector) -->
+    <div id="addTaskModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="glass-panel modal-content bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 id="taskModalTitle" class="text-lg font-bold text-slate-100">Add New Task</h3>
+                <button id="closeAddTaskModalBtn" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="addTaskForm" class="p-6 space-y-4">
+                <input type="hidden" id="taskIdEditInput">
+                <input type="hidden" id="taskIsOneOffEditInput">
+
+                <!-- Task Type Selection -->
+                <div id="taskScopeSelectionContainer">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Task Scope</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-700 bg-slate-800/60 cursor-pointer hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-600/15">
+                            <input type="radio" name="taskType" id="taskTypeRoutine" value="routine" checked class="text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <span class="text-xs font-bold text-slate-100 block">Daily Master Routine</span>
+                                <span class="text-[11px] text-slate-400 block">Write once, repeats daily</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-700 bg-slate-800/60 cursor-pointer hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-600/15">
+                            <input type="radio" name="taskType" id="taskTypeOneOff" value="oneoff" class="text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <span class="text-xs font-bold text-slate-100 block">Only for This Date</span>
+                                <span class="text-[11px] text-slate-400 block">One-time ad-hoc task</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Task Title <span class="text-red-400">*</span></label>
+                    <input type="text" id="taskTitleInput" required placeholder="e.g., Morning Workout, Read 15 mins, Deep Work" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <!-- Time (12H with explicit AM/PM) & Duration -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Scheduled Time with explicit 12H AM/PM Selector -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-semibold text-slate-300">Time (Optional)</label>
+                            <button type="button" id="clearTimeBtn" class="text-[10px] text-slate-400 hover:text-indigo-400 font-medium transition">Clear Time</button>
+                        </div>
+                        
+                        <div class="flex items-center gap-1.5">
+                            <!-- Hour Select (01-12) -->
+                            <select id="taskHourSelect" class="w-16 bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-medium text-center" title="Select Hour">
+                                <option value="">--</option>
+                                <option value="12">12</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                            </select>
+
+                            <span class="font-bold text-slate-400 text-sm">:</span>
+
+                            <!-- Minute Select (00-55) -->
+                            <select id="taskMinuteSelect" class="w-16 bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-medium text-center" title="Select Minute">
+                                <option value="00">00</option>
+                                <option value="05">05</option>
+                                <option value="10">10</option>
+                                <option value="15">15</option>
+                                <option value="20">20</option>
+                                <option value="25">25</option>
+                                <option value="30">30</option>
+                                <option value="35">35</option>
+                                <option value="40">40</option>
+                                <option value="45">45</option>
+                                <option value="50">50</option>
+                                <option value="55">55</option>
+                            </select>
+
+                            <!-- AM / PM Selector -->
+                            <select id="taskAmPmSelect" class="flex-1 bg-indigo-950/70 border border-indigo-500/50 rounded-xl px-2.5 py-2 text-xs sm:text-sm text-indigo-300 font-bold focus:outline-none focus:border-indigo-400 text-center" title="Choose AM or PM">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Estimated Duration -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Estimated Duration</label>
+                        <input type="text" id="taskDurationInput" placeholder="e.g., 15m, 45m, 1h" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Recurrence -->
+                <div id="recurrenceFieldContainer">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Recurrence Days</label>
+                    <select id="taskRecurrenceInput" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <option value="all">Every Day</option>
+                        <option value="weekdays">Weekdays (Mon-Fri)</option>
+                        <option value="weekends">Weekends (Sat-Sun)</option>
+                    </select>
+                </div>
+
+                <!-- Notes / Details -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Notes / Description (Optional)</label>
+                    <input type="text" id="taskNotesInput" placeholder="Specific goal or instructions..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onclick="window.app.switchToBulkAddModal()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+                        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                        <span>Switch to Bulk Add</span>
+                    </button>
+
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="cancelAddTaskBtn" class="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 font-medium transition">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                            Save Task
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Master Routine Manager -->
+    <div id="routineManagerModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="glass-panel modal-content bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-100">Master Schedule Routine</h3>
+                    <p class="text-xs text-slate-400">These tasks generate automatically every single day</p>
+                </div>
+                <button id="closeRoutineManagerBtn" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Top Actions & Presets Bar -->
+            <div class="px-6 py-3 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+                <div class="flex items-center gap-2">
+                    <button id="routineManagerAddBtn" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1 shadow-sm">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>+ Add Single</span>
+                    </button>
+                    <button id="routineManagerBulkAddBtn" class="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-semibold rounded-lg transition flex items-center gap-1 shadow-sm">
+                        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                        <span>⚡ Add Multiple Tasks</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] font-semibold text-slate-400 mr-1">Presets:</span>
+                    <button id="presetBalancedBtn" class="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 transition">
+                        ⚡ Balanced
+                    </button>
+                    <button id="presetStudentBtn" class="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 transition">
+                        📚 Student
+                    </button>
+                    <button id="presetMinimalistBtn" class="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 transition">
+                        🎯 Minimalist
+                    </button>
+                </div>
+            </div>
+
+            <!-- Items List -->
+            <div id="routineManagerItemsList" class="p-6 space-y-3 overflow-y-auto flex-1">
+                <!-- Injected by JS -->
+            </div>
+
+            <!-- Footer with Delete All Tasks Button -->
+            <div class="px-6 py-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50 flex-wrap gap-2">
+                <button id="routineManagerDeleteAllBtn" class="px-3.5 py-2 bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1.5" title="Delete all tasks from master routine">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Delete All Tasks</span>
+                </button>
+                
+                <button onclick="window.app.closeRoutineManagerModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium rounded-xl transition border border-slate-700">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Bulk Add Multiple Tasks Modal -->
+    <div id="bulkAddTaskModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="glass-panel modal-content bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <i data-lucide="layers" class="w-5 h-5 text-indigo-400"></i>
+                        <span>Add Multiple Tasks at Once</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Type or paste multiple tasks (one per line) to add them simultaneously</p>
+                </div>
+                <button id="closeBulkAddModalBtn" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4 overflow-y-auto flex-1">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">
+                        Enter Tasks (1 per line)
+                        <span class="text-indigo-400 text-[11px] font-normal ml-2">Tip: Supports optional time & duration (e.g., "07:00 AM - Workout | 45m")</span>
+                    </label>
+                    <textarea id="bulkTasksTextarea" rows="6" placeholder="06:30 AM - Morning Hydration & Stretching | 15m&#10;07:00 AM - Workout / Exercise | 45m&#10;08:30 AM - Healthy Breakfast&#10;09:00 AM - Deep Work Session #1 | 2h&#10;12:30 PM - Lunch & Walk&#10;02:00 PM - Afternoon Focus Block&#10;06:00 PM - Evening Decompression&#10;10:00 PM - Bedtime Wind Down" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3.5 text-xs sm:text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 resize-y"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Recurrence for Added Tasks</label>
+                        <select id="bulkRecurrenceSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                            <option value="all">Every Day</option>
+                            <option value="weekdays">Weekdays Only (Mon-Fri)</option>
+                            <option value="weekends">Weekends Only (Sat-Sun)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Add To</label>
+                        <select id="bulkDestinationSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                            <option value="master">Daily Master Routine (Repeats Daily)</option>
+                            <option value="today">Selected Date Only (One-Off)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Parsed Live Preview -->
+                <div class="border-t border-slate-800 pt-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-300">Live Preview:</span>
+                        <span id="bulkParsedCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold">0 tasks detected</span>
+                    </div>
+                    <div id="bulkPreviewContainer" class="max-h-36 overflow-y-auto space-y-1.5 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400">
+                        <p class="italic text-center py-2 text-slate-600">Start typing tasks above to see live preview...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-slate-800 flex items-center justify-end gap-3 bg-slate-950/50">
+                <button type="button" id="cancelBulkAddModalBtn" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition">
+                    Cancel
+                </button>
+                <button type="button" id="confirmBulkAddBtn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Add All Tasks</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4: Delete Confirmation Modal for Routine Items -->
+    <div id="deleteRoutineModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="glass-panel modal-content bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6">
+            <div class="flex items-center gap-3 text-red-400 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center border border-red-500/30">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-100">Delete Task</h3>
+                    <p id="deleteTaskTitlePreview" class="text-xs text-slate-400 font-medium truncate max-w-[260px]"></p>
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-300 mb-5">
+                How would you like to delete this routine task?
+            </p>
+
+            <div class="space-y-2.5">
+                <button id="deleteForTodayBtn" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition text-left flex items-center justify-between">
+                    <div>
+                        <span class="block text-slate-100">Delete for this date only</span>
+                        <span class="block text-[11px] text-slate-400">Keep in recurring routine for other days</span>
+                    </div>
+                    <i data-lucide="calendar" class="w-4 h-4 text-indigo-400"></i>
+                </button>
+
+                <button id="deletePermanentlyBtn" class="w-full py-2.5 px-4 bg-red-950/40 hover:bg-red-900/50 text-red-200 text-xs font-semibold rounded-xl border border-red-500/40 transition text-left flex items-center justify-between">
+                    <div>
+                        <span class="block text-red-300">Delete from master schedule</span>
+                        <span class="block text-[11px] text-red-400/80">Removes from this and future days</span>
+                    </div>
+                    <i data-lucide="trash" class="w-4 h-4 text-red-400"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-end">
+                <button id="cancelDeleteModalBtn" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 5: Settings & Backup Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="glass-panel modal-content bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-slate-100">Preferences & Data</h3>
+                <button id="closeSettingsBtn" class="text-slate-400 hover:text-slate-200 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <!-- Time Format -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Time Format</label>
+                    <select id="settingTimeFormat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <option value="12h">12-Hour Format (e.g. 6:30 AM, 2:00 PM)</option>
+                        <option value="24h">24-Hour Format (e.g. 06:30, 14:00)</option>
+                    </select>
+                </div>
+
+                <!-- Theme -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">App Theme</label>
+                    <select id="settingTheme" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <option value="dark">Dark Theme (Deep Slate & Indigo)</option>
+                        <option value="light">Light Theme (Clean Crisp Minimal)</option>
+                        <option value="system">Follow System Preferences</option>
+                    </select>
+                </div>
+
+                <!-- Sound Toggle -->
+                <div class="flex items-center justify-between py-2">
+                    <div>
+                        <span class="text-sm font-semibold text-slate-200 block">Check Sound Effects</span>
+                        <span class="text-xs text-slate-400 block">Play sound on task completion & fanfare at 100%</span>
+                    </div>
+                    <input type="checkbox" id="settingSoundToggle" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500">
+                </div>
+
+                <!-- Backup & Restore -->
+                <div class="pt-4 border-t border-slate-800 space-y-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Backup & Portability</span>
+                    <div class="flex items-center gap-2">
+                        <button id="exportBackupBtn" class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>Export Backup (JSON)</span>
+                        </button>
+
+                        <label class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                            <span>Import Backup</span>
+                            <input type="file" id="importBackupInput" accept=".json" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" id="saveSettingsBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                        Save Preferences
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/audio-effects.js"></script>
+    <script src="js/routine.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
