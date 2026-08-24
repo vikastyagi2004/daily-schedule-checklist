@@ -4,18 +4,10 @@
 
 ---
 
-## 🚀 How to Run the App
-
-1. Open File Explorer and navigate to:
-   `C:\Users\VIKAS TYAGI\.gemini\antigravity\scratch\daily-schedule-checklist\`
-2. Double click **`index.html`** to open it in any web browser.
-
----
-
 ## ✨ Features
 
 - 🔄 **Write Once, Reset Daily**: Define your master routine once and get a clean checklist reset every morning.
-- ☀️🌙 **AM & PM Schedule Structure**: Tasks are organized into **☀️ AM Schedule** (12:00 AM - 11:59 AM) and **🌙 PM Schedule** (12:00 PM - 11:59 PM).
+- ☀️🌙 **Tasks Structure**: Tasks are organized in a manner (12:00 AM - 11:59 PM).
 - 🗑️ **Delete Option on All Tasks**:
   - Delete one-off tasks directly.
   - Delete routine tasks either **"for this date only"** or **"permanently from master schedule"**.
